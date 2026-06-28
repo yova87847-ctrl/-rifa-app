@@ -136,4 +136,3 @@ with tab2:
 from datetime import datetime
 
 st.set_page_config(page_title="Rifa Premium", layout="wide")
-
