@@ -42,7 +42,7 @@ def generar_pdf(nombre, telefono, numeros):
 
     fecha = datetime.now().strftime("%d/%m/%Y %H:%M")
 
-   pdf.set_font("Arial","B",14)
+pdf.set_font("Arial","B",14)
 pdf.cell(0,10,"TRANSACCION EXITOSA",ln=True)
 
 pdf.ln(5)
