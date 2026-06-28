@@ -11,7 +11,6 @@ st.set_page_config(page_title="Rifa", page_icon="🎟️")
 DB_FILE = "rifa_db.csv"
 PRECIO = 3000
 
-# 🔒 CONTRASEÑA SEGURA
 ADMIN_PASSWORD = "JVR_2026_SEGUR0"
 
 # ========================
@@ -29,7 +28,7 @@ def guardar(df):
 df = cargar()
 
 # ========================
-# PDF TIPO COMPROBANTE
+# PDF
 # ========================
 def generar_pdf(nombre, telefono, numeros):
     pdf = FPDF()
@@ -50,7 +49,7 @@ def generar_pdf(nombre, telefono, numeros):
 
     pdf.ln(3)
 
-    # ✅ DATOS DEL COMPRADOR
+    # COMPRADOR
     pdf.set_font("Arial","B",12)
     pdf.cell(0,8,"DATOS DEL COMPRADOR",ln=True)
 
@@ -75,7 +74,6 @@ def generar_pdf(nombre, telefono, numeros):
 
     pdf.ln(3)
 
-    # PREMIO
     pdf.multi_cell(0,7,"Premio: Televisor Smart TV 42 pulgadas o $1.300.000")
 
     pdf.ln(3)
@@ -153,29 +151,7 @@ with tab1:
             df_local = pd.concat([df,pd.DataFrame(nuevos)],ignore_index=True)
             guardar(df_local)
 
-            st.session_state.reserva={
-                "nombre":nombre,
-                "telefono":telefono,
-                "numeros":numeros
-            }
-
             st.success("✅ Reserva guardada")
-
-    # ✅ PDF Y WHATSAPP
-    if st.session_state.reserva:
-        datos = st.session_state.reserva
-
-        pdf_bytes = generar_pdf(datos["nombre"],datos["telefono"],datos["numeros"])
-
-        st.download_button(
-            "📄 Descargar comprobante",
-            data=pdf_bytes,
-            file_name="rifa_comprobante.pdf"
-        )
-
-        mensaje = f"Hola, reservé {', '.join(datos['numeros'])}. Total ${len(datos['numeros'])*PRECIO}"
-        link = f"https://wa.me/{datos['telefono']}?text={mensaje.replace(' ','%20')}"
-        st.markdown(link)
 
 # ========================
 # ADMIN
@@ -200,12 +176,39 @@ with tab2:
 
                 col1, col2 = st.columns(2)
 
+                # ✅ APROBAR Y GENERAR PDF
                 with col1:
                     if st.button(f"✅ Aprobar {row['numero']}", key=f"a{i}"):
+
+                        # Marcar vendido
                         df.loc[df["numero"]==row["numero"],"estado"]="Vendido"
                         guardar(df)
+
+                        # Obtener TODOS los números del cliente
+                        cliente = df[
+                            (df["telefono"] == row["telefono"]) &
+                            (df["estado"] == "Vendido")
+                        ]
+
+                        numeros_cliente = cliente["numero"].tolist()
+
+                        # Generar PDF
+                        pdf_bytes = generar_pdf(
+                            row["nombre"],
+                            row["telefono"],
+                            numeros_cliente
+                        )
+
+                        # Guardar archivo
+                        nombre_archivo = f"comprobante_{row['telefono']}.pdf"
+                        with open(nombre_archivo, "wb") as f:
+                            f.write(pdf_bytes)
+
+                        st.success(f"✅ Aprobado y PDF generado: {nombre_archivo}")
+
                         st.rerun()
 
+                # ❌ RECHAZAR
                 with col2:
                     if st.button(f"❌ Rechazar {row['numero']}", key=f"r{i}"):
                         df = df[df["numero"]!=row["numero"]]
