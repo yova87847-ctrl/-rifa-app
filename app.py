@@ -5,19 +5,7 @@ from fpdf import FPDF
 from datetime import datetime
 
 # ========================
-# CONFIG
-# ========================
-st.set_page_config(page_title="Rifa", page_icon="🎟️")
-DB_FILE = "rifa_db.csv"
-PRECIO = 3000
-
-ADMIN_PASSWORD = "JVR_2026_SEGUR0"
-
-# ========================
-# BASE DE DATOS
-# ========================
-def cargar():
-    if not os.path.exists(DB_FILE):
+#(DB_FILE):# CONFIG
         df = pd.DataFrame(columns=["numero","nombre","telefono","estado"])
         df.to_csv(DB_FILE, index=False)
     return pd.read_csv(DB_FILE, dtype=str).fillna("")
@@ -37,7 +25,6 @@ def generar_pdf(nombre, telefono, numeros):
     fecha = datetime.now().strftime("%d/%m/%Y %H:%M")
     total = PRECIO * len(numeros)
 
-    # ENCABEZADO
     pdf.set_font("Arial","B",16)
     pdf.cell(0,10,"COMPROBANTE DE COMPRA",ln=True,align="C")
 
@@ -49,7 +36,6 @@ def generar_pdf(nombre, telefono, numeros):
 
     pdf.ln(3)
 
-    # COMPRADOR
     pdf.set_font("Arial","B",12)
     pdf.cell(0,8,"DATOS DEL COMPRADOR",ln=True)
 
@@ -59,7 +45,6 @@ def generar_pdf(nombre, telefono, numeros):
 
     pdf.ln(3)
 
-    # DETALLE
     pdf.set_font("Arial","B",12)
     pdf.cell(0,8,"DETALLE DE LA COMPRA",ln=True)
 
@@ -91,8 +76,8 @@ def generar_pdf(nombre, telefono, numeros):
 # ========================
 # SESSION
 # ========================
-if "reserva" not in st.session_state:
-    st.session_state.reserva = None
+if "pdf_admin" not in st.session_state:
+    st.session_state["pdf_admin"] = None
 
 # ========================
 # UI
@@ -125,18 +110,18 @@ with tab1:
         else:
             label = f"🟢 {n}"
         opciones.append(label)
-        mapa[label]=n
+        mapa[label] = n
 
-    seleccion = st.multiselect("Selecciona números",opciones)
+    seleccion = st.multiselect("Selecciona números", opciones)
     numeros = [mapa[s] for s in seleccion if mapa[s] not in vendidos]
 
-    total = len(numeros)*PRECIO
+    total = len(numeros) * PRECIO
     st.success(f"💰 Total a pagar: ${total}")
 
     if st.button("Reservar"):
         if not nombre or not telefono:
             st.error("Completa los datos")
-        elif len(numeros)!=cantidad:
+        elif len(numeros) != cantidad:
             st.error("Selecciona la cantidad correcta")
         else:
             nuevos=[]
@@ -176,15 +161,13 @@ with tab2:
 
                 col1, col2 = st.columns(2)
 
-                # ✅ APROBAR Y GENERAR PDF
+                # ✅ APROBAR + PDF
                 with col1:
                     if st.button(f"✅ Aprobar {row['numero']}", key=f"a{i}"):
 
-                        # Marcar vendido
                         df.loc[df["numero"]==row["numero"],"estado"]="Vendido"
                         guardar(df)
 
-                        # Obtener TODOS los números del cliente
                         cliente = df[
                             (df["telefono"] == row["telefono"]) &
                             (df["estado"] == "Vendido")
@@ -192,21 +175,18 @@ with tab2:
 
                         numeros_cliente = cliente["numero"].tolist()
 
-                        # Generar PDF
                         pdf_bytes = generar_pdf(
                             row["nombre"],
                             row["telefono"],
                             numeros_cliente
                         )
 
-                        # Guardar archivo
-                        nombre_archivo = f"comprobante_{row['telefono']}.pdf"
-                        with open(nombre_archivo, "wb") as f:
-                            f.write(pdf_bytes)
+                        st.session_state["pdf_admin"] = {
+                            "file": pdf_bytes,
+                            "telefono": row["telefono"]
+                        }
 
-                        st.success(f"✅ Aprobado y PDF generado: {nombre_archivo}")
-
-                        st.rerun()
+                        st.success("✅ Compra aprobada. Descarga el comprobante abajo 👇")
 
                 # ❌ RECHAZAR
                 with col2:
@@ -214,6 +194,16 @@ with tab2:
                         df = df[df["numero"]!=row["numero"]]
                         guardar(df)
                         st.rerun()
+
+        # ✅ BOTÓN PDF
+        if st.session_state["pdf_admin"]:
+            data = st.session_state["pdf_admin"]
+
+            st.download_button(
+                "📄 Descargar comprobante",
+                data=data["file"],
+                file_name=f"comprobante_{data['telefono']}.pdf"
+            )
 
         st.write("### 📋 Datos")
         st.dataframe(df)
@@ -236,3 +226,14 @@ with tab2:
 
     elif clave:
         st.error("Contraseña incorrecta ❌")
+# ========================
+st.set_page_config(page_title="Rifa", page_icon="🎟️")
+DB_FILE = "rifa_db.csv"
+PRECIO = 3000
+
+ADMIN_PASSWORD = "JVR_2026_SEGUR0"
+
+# ========================
+# BASE DE DATOS
+# ========================
+def cargar():
