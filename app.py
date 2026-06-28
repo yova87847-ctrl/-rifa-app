@@ -66,7 +66,7 @@ pdf.cell(0,8,f"Referencia 2: {nombre}",ln=True)
 pdf.cell(0,8,f"Numeros: {' - '.join(numeros)}",ln=True)
 
 pdf.cell(0,8,f"Codigo unico: {datetime.now().strftime('%Y%m%d%H%M%S')}",ln=True)
-return pdf.output(dest="S").encode("latin-1")
+ return pdf.output(dest="S").encode("latin-1")
 
 # ========================
 # SESSION
