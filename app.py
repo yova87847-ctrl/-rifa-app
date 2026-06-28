@@ -12,8 +12,7 @@ return pd.read_csv(DB_FILE, dtype=str).fillna("")
 
 def guardar(df):
     df.to_csv(DB_FILE, index=False)
-
- df = cargar()
+    df = cargar()
 
 # ========================
 # PDF
