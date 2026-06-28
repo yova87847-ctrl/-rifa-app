@@ -42,21 +42,30 @@ def generar_pdf(nombre, telefono, numeros):
 
     fecha = datetime.now().strftime("%d/%m/%Y %H:%M")
 
-    pdf.set_font("Arial","B",18)
-    pdf.set_text_color(200,0,0)
-    pdf.cell(0,10,"J.V.R PREMIUM RIFA",ln=True,align="C")
+   pdf.set_font("Arial","B",14)
+pdf.cell(0,10,"TRANSACCION EXITOSA",ln=True)
 
-    pdf.ln(5)
-    pdf.set_text_color(0,0,0)
-    pdf.set_font("Arial","",11)
+pdf.ln(5)
+pdf.set_font("Arial","",11)
 
-    pdf.cell(0,8,f"Nombre: {nombre}",ln=True)
-    pdf.cell(0,8,f"Telefono: {telefono}",ln=True)
+pdf.cell(0,8,f"Cliente: {nombre}",ln=True)
+pdf.cell(0,8,f"Telefono: {telefono}",ln=True)
 
-    pdf.cell(0,8," - ".join(numeros),ln=True)
-    pdf.cell(0,8,f"Total: ${PRECIO * len(numeros)}",ln=True)
+pdf.cell(0,8,"Destino de pago: Rifa Premium JVR",ln=True)
+pdf.cell(0,8,"Motivo: Compra de numeros",ln=True)
 
-    pdf.cell(0,8,f"Fecha: {fecha}",ln=True)
+pdf.cell(0,8,f"Fecha y hora: {fecha}",ln=True)
+
+pdf.cell(0,8,f"Valor: ${PRECIO * len(numeros)}",ln=True)
+pdf.cell(0,8,"Impuestos: $0",ln=True)
+pdf.cell(0,8,"Costo transaccion: $0",ln=True)
+
+pdf.cell(0,8,f"Referencia 1: {telefono}",ln=True)
+pdf.cell(0,8,f"Referencia 2: {nombre}",ln=True)
+
+pdf.cell(0,8,f"Numeros: {' - '.join(numeros)}",ln=True)
+
+pdf.cell(0,8,f"Codigo unico: {datetime.now().strftime('%Y%m%d%H%M%S')}",ln=True)
 
     return pdf.output(dest="S").encode("latin-1")
 
