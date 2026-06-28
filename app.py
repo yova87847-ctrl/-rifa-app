@@ -235,4 +235,4 @@ ADMIN_PASSWORD = "JVR_2026_SEGUR0"
 # ========================
 # BASE DE DATOS
 # ========================
-def cargar():
+ def cargar():
