@@ -28,7 +28,7 @@ def guardar(df):
 df = cargar()
 
 # ========================
-# PDF
+# PDF TIPO TICKET 🔥
 # ========================
 def generar_pdf(nombre, telefono, numeros):
     pdf = FPDF()
@@ -36,25 +36,56 @@ def generar_pdf(nombre, telefono, numeros):
 
     fecha = datetime.now().strftime("%d/%m/%Y %H:%M")
 
-    pdf.set_font("Arial","B",16)
-    pdf.cell(0,10,"RIFA PREMIUM",ln=True,align="C")
+    pdf.set_font("Arial","B",18)
+    pdf.cell(0,10,"J.V.R PREMIUM RIFA",ln=True,align="C")
+
+    pdf.ln(5)
 
     pdf.set_font("Arial","",12)
-    pdf.cell(0,10,f"Nombre: {nombre}",ln=True)
-    pdf.cell(0,10,f"Telefono: {telefono}",ln=True)
+    pdf.cell(0,8,f"Nombre: {nombre}",ln=True)
+    pdf.cell(0,8,f"Telefono: {telefono}",ln=True)
 
-    pdf.cell(0,10,"Numeros:",ln=True)
-    pdf.multi_cell(0,8," - ".join(numeros))
+    pdf.ln(3)
 
-    pdf.cell(0,10,f"Total: ${PRECIO * len(numeros)}",ln=True)
-    pdf.cell(0,10,f"Fecha: {fecha}",ln=True)
+    pdf.set_font("Arial","B",12)
+    pdf.cell(0,8,"NUMEROS DE BOLETO:",ln=True)
+
+    pdf.set_font("Arial","",12)
+    pdf.cell(0,8," - ".join(numeros),ln=True)
+
+    pdf.ln(3)
+    pdf.cell(0,8,f"Fecha: {fecha}",ln=True)
+
+    pdf.cell(0,8,f"Total pagado: ${PRECIO * len(numeros)}",ln=True)
+
+    pdf.ln(4)
+
+    pdf.set_font("Arial","B",11)
+    pdf.cell(0,8,"Premio principal:",ln=True)
+
+    pdf.set_font("Arial","",11)
+    pdf.multi_cell(0,6,"Televisor Smart TV Sankey 42 pulgadas Android Full HD")
+
+    pdf.cell(0,6,"Opcion alternativa: $1.300.000 en efectivo",ln=True)
+    pdf.cell(0,6,"Sorteo: 4 de septiembre - Loteria de Medellin",ln=True)
+
+    pdf.ln(5)
+
+    pdf.set_font("Arial","B",11)
+    pdf.cell(0,6,"Responsable: Jovanis Vanegas Ropain",ln=True)
+    pdf.cell(0,6,"Contacto: 3126613272",ln=True)
+
+    pdf.ln(5)
+
+    pdf.set_font("Arial","B",12)
+    pdf.cell(0,10,"Gracias por tu compra, mucha suerte!",ln=True,align="C")
 
     return pdf.output(dest="S").encode("latin-1")
 
 # ========================
-# ESTADISTICAS
+# ESTADISTICAS 💰
 # ========================
-vendidos = df[df["estado"] == "Vendido"]
+vendidos = df[df["estado"]=="Vendido"]
 total_vendidos = len(vendidos)
 total_dinero = total_vendidos * PRECIO
 
@@ -131,24 +162,14 @@ with tab1:
             guardar(df_local)
 
             st.success("✅ Reserva guardada")
-
-            # ✅ GENERAR PDF AQUÍ
-            pdf_bytes = generar_pdf(nombre, telefono, numeros)
-
-            st.download_button(
-                "📄 Descargar comprobante",
-                data=pdf_bytes,
-                file_name="rifa.pdf",
-                mime="application/pdf"
-            )
+            st.rerun()
 
 # ========================
-# ADMIN
+# ADMIN 🔒
 # ========================
 with tab2:
 
     st.subheader("🔒 Panel Administrador")
-
     clave = st.text_input("Contraseña", type="password")
 
     if clave == ADMIN_PASSWORD:
@@ -167,22 +188,38 @@ with tab2:
 
             col1,col2 = st.columns(2)
 
-            # ✅ APROBAR
+            # ✅ APROBAR + PDF
             with col1:
-                if st.button(f"Aprobar {row['numero']}",key=f"a{i}"):
-                    df.loc[df["numero"]==row["numero"],"estado"]="Vendido"
+                if st.button(f"✅ Aprobar {row['numero']}", key=f"a{i}"):
+
+                    df.loc[df["numero"] == row["numero"], "estado"] = "Vendido"
                     guardar(df)
-                    st.rerun()
+
+                    pdf_bytes = generar_pdf(
+                        row["nombre"],
+                        row["telefono"],
+                        [row["numero"]]
+                    )
+
+                    st.success("✅ Venta aprobada")
+
+                    st.download_button(
+                        label="📄 Descargar comprobante",
+                        data=pdf_bytes,
+                        file_name=f"boleto_{row['numero']}.pdf",
+                        mime="application/pdf"
+                    )
 
             # ❌ RECHAZAR
             with col2:
-                if st.button(f"Rechazar {row['numero']}",key=f"r{i}"):
-                    df = df[df["numero"]!=row["numero"]]
+                if st.button(f"❌ Rechazar {row['numero']}", key=f"r{i}"):
+                    df = df[df["numero"] != row["numero"]]
                     guardar(df)
                     st.rerun()
 
         st.divider()
 
+        # ❌ ELIMINAR MANUAL
         num = st.text_input("Eliminar número")
 
         if st.button("Eliminar"):
@@ -190,10 +227,11 @@ with tab2:
             guardar(df)
             st.rerun()
 
+        # 🧹 RESET
         if st.button("⚠️ BORRAR TODO"):
             df = pd.DataFrame(columns=["numero","nombre","telefono","estado"])
             guardar(df)
             st.rerun()
 
     elif clave:
-        st.error("Contraseña incorrecta")
+        st.error("Contraseña incorrecta ❌")
