@@ -1,4 +1,4 @@
-import streamlit as stimport stream pandas as pd
+import streamlit as stimport streamlit as pd
 import os
 from fpdf import FPDF
 from datetime import datetime
@@ -19,7 +19,6 @@ def cargar():
     if not os.path.exists(DB_FILE):
         df = pd.DataFrame(columns=["numero", "nombre", "telefono", "estado"])
         df.to_csv(DB_FILE, index=False)
-
     return pd.read_csv(DB_FILE, dtype=str).fillna("")
 
 
@@ -39,7 +38,6 @@ def generar_pdf(nombre, telefono, numeros):
     fecha = datetime.now().strftime("%d/%m/%Y %H:%M")
     total = PRECIO * len(numeros)
 
-    # ENCABEZADO
     pdf.set_font("Arial", "B", 16)
     pdf.cell(0, 10, "COMPROBANTE DE COMPRA", ln=True, align="C")
 
@@ -51,7 +49,6 @@ def generar_pdf(nombre, telefono, numeros):
 
     pdf.ln(3)
 
-    # COMPRADOR
     pdf.set_font("Arial", "B", 12)
     pdf.cell(0, 8, "DATOS DEL COMPRADOR", ln=True)
 
@@ -61,7 +58,6 @@ def generar_pdf(nombre, telefono, numeros):
 
     pdf.ln(3)
 
-    # DETALLE
     pdf.set_font("Arial", "B", 12)
     pdf.cell(0, 8, "DETALLE DE LA COMPRA", ln=True)
 
@@ -94,7 +90,7 @@ def generar_pdf(nombre, telefono, numeros):
 # SESSION
 # ========================
 if "pdf_admin" not in st.session_state:
-    st.session_state["pdf_admin"] = None
+    st.session_state.pdf_admin = None
 
 # ========================
 # INTERFAZ
@@ -143,7 +139,6 @@ with tab1:
             st.error("Selecciona la cantidad correcta")
         else:
             nuevos = []
-
             for n in numeros:
                 nuevos.append({
                     "numero": n,
@@ -182,7 +177,7 @@ with tab2:
 
                 col1, col2 = st.columns(2)
 
-                # ✅ APROBAR CON PDF
+                # ✅ APROBAR + GENERAR PDF
                 with col1:
                     if st.button(f"✅ Aprobar {row['numero']}", key=f"a{i}"):
 
@@ -202,12 +197,12 @@ with tab2:
                             numeros_cliente
                         )
 
-                        st.session_state["pdf_admin"] = {
+                        st.session_state.pdf_admin = {
                             "file": pdf_bytes,
                             "telefono": row["telefono"]
                         }
 
-                        st.success("✅ Compra aprobada. Descarga el comprobante abajo 👇")
+                        st.success("✅ Aprobado. Descarga el PDF abajo 👇")
 
                 # ❌ RECHAZAR
                 with col2:
@@ -217,9 +212,9 @@ with tab2:
                         st.rerun()
 
         # ✅ BOTÓN DESCARGA PDF
-        if st.session_state["pdf_admin"]:
+        if st.session_state.pdf_admin is not None:
 
-            data = st.session_state["pdf_admin"]
+            data = st.session_state.pdf_admin
 
             st.download_button(
                 "📄 Descargar comprobante",
@@ -232,6 +227,7 @@ with tab2:
 
         # ELIMINAR
         st.write("### ❌ Eliminar número")
+
         num = st.text_input("Número")
 
         if st.button("Eliminar"):
@@ -243,9 +239,10 @@ with tab2:
         st.write("### 🧹 Reiniciar rifa")
 
         if st.button("⚠️ BORRAR TODO"):
-            df = pd.DataFrame(columns=["numero","nombre","telefono","estado"])
+            df = pd.DataFrame(columns=["numero", "nombre", "telefono", "estado"])
             guardar(df)
             st.rerun()
 
     elif clave:
         st.error("Contraseña incorrecta ❌")
+
