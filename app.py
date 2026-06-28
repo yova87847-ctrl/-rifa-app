@@ -13,7 +13,7 @@ from datetime import datetime
 def guardar(df):
     df.to_csv(DB_FILE, index=False)
 
-df = cargar()
+ df = cargar()
 
 # ========================
 # PDF
