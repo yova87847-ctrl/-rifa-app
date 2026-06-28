@@ -6,67 +6,34 @@ from datetime import datetime
 
 # ========================
 # CONFIG
-# ========================
-st.set_page_config(page_title="Rifa Premium", page_icon="🎟️", layout="wide")
+#d/%m/%Y %H:%M")# ========================
 
-DB_FILE = "rifa_db.csv"
-PRECIO = 3000
-ADMIN_PASSWORD = "JVR_2026_SEGUR0"
+    pdf.set_font("Arial","B",14)
+    pdf.cell(0,10,"TRANSACCION EXITOSA",ln=True)
 
-# ========================
-# BASE DE DATOS
-# ========================
-def cargar():
-    if not os.path.exists(DB_FILE):
-        df = pd.DataFrame(columns=["numero","nombre","telefono","estado"])
-        df.to_csv(DB_FILE, index=False)
-    return pd.read_csv(DB_FILE, dtype=str).fillna("")
+    pdf.ln(5)
+    pdf.set_font("Arial","",11)
 
-def guardar(df):
-    df.to_csv(DB_FILE, index=False)
+    pdf.cell(0,8,f"Cliente: {nombre}",ln=True)
+    pdf.cell(0,8,f"Telefono: {telefono}",ln=True)
 
-df = cargar()
+    pdf.cell(0,8,"Destino de pago: Rifa Premium JVR",ln=True)
+    pdf.cell(0,8,"Motivo: Compra de numeros",ln=True)
 
-# ========================
-# ESTADISTICAS 💰
-# ========================
-vendidos_count = len(df[df["estado"]=="Vendido"])
-total_dinero = vendidos_count * PRECIO
+    pdf.cell(0,8,f"Fecha y hora: {fecha}",ln=True)
 
-# ========================
-# PDF
-# ========================
-def generar_pdf(nombre, telefono, numeros):
-    pdf = FPDF()
-    pdf.add_page()
+    pdf.cell(0,8,f"Valor: ${PRECIO * len(numeros)}",ln=True)
+    pdf.cell(0,8,"Impuestos: $0",ln=True)
+    pdf.cell(0,8,"Costo transaccion: $0",ln=True)
 
-    fecha = datetime.now().strftime("%d/%m/%Y %H:%M")
+    pdf.cell(0,8,f"Referencia 1: {telefono}",ln=True)
+    pdf.cell(0,8,f"Referencia 2: {nombre}",ln=True)
 
-pdf.set_font("Arial","B",14)
-pdf.cell(0,10,"TRANSACCION EXITOSA",ln=True)
+    pdf.cell(0,8,f"Numeros: {' - '.join(numeros)}",ln=True)
 
-pdf.ln(5)
-pdf.set_font("Arial","",11)
+    pdf.cell(0,8,f"Codigo unico: {datetime.now().strftime('%Y%m%d%H%M%S')}",ln=True)
 
-pdf.cell(0,8,f"Cliente: {nombre}",ln=True)
-pdf.cell(0,8,f"Telefono: {telefono}",ln=True)
-
-pdf.cell(0,8,"Destino de pago: Rifa Premium JVR",ln=True)
-pdf.cell(0,8,"Motivo: Compra de numeros",ln=True)
-
-pdf.cell(0,8,f"Fecha y hora: {fecha}",ln=True)
-
-pdf.cell(0,8,f"Valor: ${PRECIO * len(numeros)}",ln=True)
-pdf.cell(0,8,"Impuestos: $0",ln=True)
-pdf.cell(0,8,"Costo transaccion: $0",ln=True)
-
-pdf.cell(0,8,f"Referencia 1: {telefono}",ln=True)
-pdf.cell(0,8,f"Referencia 2: {nombre}",ln=True)
-
-pdf.cell(0,8,f"Numeros: {' - '.join(numeros)}",ln=True)
-
-pdf.cell(0,8,f"Codigo unico: {datetime.now().strftime('%Y%m%d%H%M%S')}",ln=True)
-return pdf.output(dest="S").encode("latin-1")
+    return pdf.output(dest="S").encode("latin-1")
 
 # ========================
 # SESSION
@@ -75,7 +42,7 @@ if "reserva" not in st.session_state:
     st.session_state.reserva = None
 
 # ========================
-# DISEÑO HEADER 🔥
+# HEADER
 # ========================
 st.markdown("## 🎟️ RIFA PREMIUM")
 st.markdown("### Gana un Smart TV o dinero en efectivo")
@@ -178,12 +145,12 @@ with tab2:
 
             col1.write(f"{row['numero']} - {row['nombre']}")
 
-            if col1.button(f"✅",key=f"a{i}"):
+            if col1.button("✅",key=f"a{i}"):
                 df.loc[df["numero"]==row["numero"],"estado"]="Vendido"
                 guardar(df)
                 st.rerun()
 
-            if col2.button(f"❌",key=f"r{i}"):
+            if col2.button("❌",key=f"r{i}"):
                 df = df[df["numero"]!=row["numero"]]
                 guardar(df)
                 st.rerun()
@@ -198,3 +165,36 @@ with tab2:
 
     elif clave:
         st.error("Contraseña incorrecta")
+st.set_page_config(page_title="Rifa Premium", page_icon="🎟️", layout="wide")
+
+DB_FILE = "rifa_db.csv"
+PRECIO = 3000
+ADMIN_PASSWORD = "JVR_2026_SEGUR0"
+
+# ========================
+# BASE DE DATOS
+# ========================
+def cargar():
+    if not os.path.exists(DB_FILE):
+        df = pd.DataFrame(columns=["numero","nombre","telefono","estado"])
+        df.to_csv(DB_FILE, index=False)
+    return pd.read_csv(DB_FILE, dtype=str).fillna("")
+
+def guardar(df):
+    df.to_csv(DB_FILE, index=False)
+
+df = cargar()
+
+# ========================
+# ESTADISTICAS
+# ========================
+vendidos_count = len(df[df["estado"]=="Vendido"])
+total_dinero = vendidos_count * PRECIO
+
+# ========================
+# PDF
+# ========================
+def generar_pdf(nombre, telefono, numeros):
+    pdf = FPDF()
+    pdf.add_page()
+
