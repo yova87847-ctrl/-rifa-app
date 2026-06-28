@@ -7,7 +7,7 @@ from datetime import datetime
 # ========================
 #(DB_FILE):# CONFIG
 df = pd.DataFrame(columns=["numero","nombre","telefono","estado"])
-        df.to_csv(DB_FILE, index=False)
+df.to_csv(DB_FILE, index=False)
     return pd.read_csv(DB_FILE, dtype=str).fillna("")
 
 def guardar(df):
