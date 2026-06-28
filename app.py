@@ -12,7 +12,7 @@ PRECIO = 3000
 ADMIN_PASSWORD = "JVR_2026_SEGUR0"
 
 # ========================
-# DATOS
+# BASE DE DATOS
 # ========================
 def cargar():
     if not os.path.exists(DB_FILE):
@@ -26,9 +26,24 @@ def guardar(df):
 df = cargar()
 
 # ========================
+# ESTADISTICAS 💰
+# ========================
+vendidos = df[df["estado"] == "Vendido"]
+total_vendidos = len(vendidos)
+total_dinero = total_vendidos * PRECIO
+
+# ========================
 # INTERFAZ
 # ========================
 st.title("🎟️ RIFA PREMIUM")
+st.markdown("### Gana un Smart TV o dinero en efectivo")
+
+col1, col2, col3 = st.columns(3)
+col1.metric("🎫 Vendidos", total_vendidos)
+col2.metric("💰 Recaudado", f"${total_dinero}")
+col3.metric("💵 Precio", f"${PRECIO}")
+
+st.divider()
 
 tab1, tab2 = st.tabs(["🛒 Reservar","🔒 Admin"])
 
@@ -37,52 +52,56 @@ tab1, tab2 = st.tabs(["🛒 Reservar","🔒 Admin"])
 # ========================
 with tab1:
 
-    cantidad = st.number_input("Cantidad",1,20,1)
+    cantidad = st.number_input("Cantidad", 1, 20, 1)
     nombre = st.text_input("Nombre")
     telefono = st.text_input("Telefono")
 
-    todos = [f"{i:03d}" for i in range(100)]
-    vendidos = df[df["estado"]=="Vendido"]["numero"].tolist()
-    reservados = df[df["estado"]=="Pendiente"]["numero"].tolist()
+    # 🔥 CORRECTO 000 → 999
+    todos = [f"{i:03d}" for i in range(1000)]
 
-    opciones=[]
-    mapa={}
+    vendidos_list = df[df["estado"] == "Vendido"]["numero"].tolist()
+    reservados_list = df[df["estado"] == "Pendiente"]["numero"].tolist()
+
+    opciones = []
+    mapa = {}
 
     for n in todos:
-        if n in vendidos:
-            label=f"🔴 {n}"
-        elif n in reservados:
-            label=f"🟡 {n}"
+        if n in vendidos_list:
+            label = f"🔴 {n} Vendido"
+        elif n in reservados_list:
+            label = f"🟡 {n} Reservado"
         else:
-            label=f"🟢 {n}"
+            label = f"🟢 {n}"
 
         opciones.append(label)
-        mapa[label]=n
+        mapa[label] = n
 
-    seleccion = st.multiselect("Numeros", opciones)
-    numeros = [mapa[s] for s in seleccion if mapa[s] not in vendidos]
+    seleccion = st.multiselect("Selecciona números", opciones)
 
-    total=len(numeros)*PRECIO
+    numeros = [mapa[s] for s in seleccion if mapa[s] not in vendidos_list]
+
+    total = len(numeros) * PRECIO
     st.success(f"💰 Total: ${total}")
 
-    if st.button("Reservar"):
+    if st.button("✅ Reservar"):
         if not nombre or not telefono:
-            st.error("Completa datos")
-        elif len(numeros)!=cantidad:
-            st.error("Cantidad incorrecta")
+            st.error("Completa los datos")
+        elif len(numeros) != cantidad:
+            st.error("Selecciona la cantidad correcta")
         else:
-            nuevos=[]
+            nuevos = []
             for n in numeros:
                 nuevos.append({
-                    "numero":n,
-                    "nombre":nombre,
-                    "telefono":telefono,
-                    "estado":"Pendiente"
+                    "numero": n,
+                    "nombre": nombre,
+                    "telefono": telefono,
+                    "estado": "Pendiente"
                 })
 
-            df_local=pd.concat([df,pd.DataFrame(nuevos)],ignore_index=True)
+            df_local = pd.concat([df, pd.DataFrame(nuevos)], ignore_index=True)
             guardar(df_local)
-            st.success("Reserva guardada ✅")
+
+            st.success("✅ Reserva guardada")
             st.rerun()
 
 # ========================
@@ -91,56 +110,70 @@ with tab1:
 with tab2:
 
     st.subheader("🔒 Panel Administrador")
-
     clave = st.text_input("Contraseña", type="password")
 
     if clave == ADMIN_PASSWORD:
 
         st.success("✅ Acceso concedido")
 
-        # 🔥 TABLA
+        st.markdown("### 📋 Todas las reservas")
         st.dataframe(df)
-
-        # 🔥 PENDIENTES
-        pendientes = df[df["estado"]=="Pendiente"]
-
-        st.write("### 🟡 Pendientes")
-
-        for i,row in pendientes.iterrows():
-
-            st.write(f"{row['numero']} - {row['nombre']}")
-
-            col1,col2 = st.columns(2)
-
-            # ✅ APROBAR
-            with col1:
-                if st.button(f"Aprobar {row['numero']}", key=f"a{i}"):
-                    df.loc[df["numero"]==row["numero"],"estado"]="Vendido"
-                    guardar(df)
-                    st.rerun()
-
-            # ❌ RECHAZAR
-            with col2:
-                if st.button(f"Rechazar {row['numero']}", key=f"r{i}"):
-                    df = df[df["numero"]!=row["numero"]]
-                    guardar(df)
-                    st.rerun()
 
         st.divider()
 
-        # ❌ ELIMINAR
-        num = st.text_input("Eliminar número")
+        pendientes = df[df["estado"] == "Pendiente"]
 
-        if st.button("Eliminar"):
-            df = df[df["numero"]!=num]
-            guardar(df)
-            st.rerun()
+        st.markdown("### 🟡 Reservas pendientes")
+
+        if pendientes.empty:
+            st.info("No hay reservas")
+        else:
+            for i, row in pendientes.iterrows():
+
+                st.markdown(f"**🎟️ {row['numero']}** | {row['nombre']}")
+
+                col1, col2 = st.columns(2)
+
+                # ✅ APROBAR
+                with col1:
+                    if st.button(f"✅ Aprobar {row['numero']}", key=f"a{i}"):
+                        df.loc[df["numero"] == row["numero"], "estado"] = "Vendido"
+                        guardar(df)
+                        st.rerun()
+
+                # ❌ RECHAZAR
+                with col2:
+                    if st.button(f"❌ Rechazar {row['numero']}", key=f"r{i}"):
+                        df = df[df["numero"] != row["numero"]]
+                        guardar(df)
+                        st.rerun()
+
+        st.divider()
+
+        # ❌ ELIMINAR MANUAL
+        st.markdown("### ❌ Eliminar número manual")
+
+        numero_eliminar = st.text_input("Número (ej: 005)")
+
+        if st.button("Eliminar número"):
+            if numero_eliminar in df["numero"].values:
+                df = df[df["numero"] != numero_eliminar]
+                guardar(df)
+                st.success("Número eliminado ✅")
+                st.rerun()
+            else:
+                st.error("Número no existe")
+
+        st.divider()
 
         # 🧹 RESET
+        st.markdown("### 🧹 Reiniciar rifa")
+
         if st.button("⚠️ BORRAR TODO"):
             df = pd.DataFrame(columns=["numero","nombre","telefono","estado"])
             guardar(df)
+            st.success("Rifa reiniciada ✅")
             st.rerun()
 
     elif clave:
-        st.error("Contraseña incorrecta")
+        st.error("Contraseña incorrecta ❌")
