@@ -1,12 +1,139 @@
 import streamlit as st
-import osimport pandas as pd
+import os
+import pandas as pd
 from fpdf import FPDF
 from datetime import datetime
 
 # ========================
 # CONFIG
 # ========================
-st.set_page_config(page_title="Rifa Premium", layout="wide")
+st.set_page_config(pageARst.set_page_config(page_title="Rifa Premium", layout="wide")
+# ========================
+with tab1:
+
+    cantidad = st.number_input("Cantidad",1,20,1)
+    nombre = st.text_input("Nombre")
+    telefono = st.text_input("Telefono")
+
+    todos = [f"{i:03d}" for i in range(1000)]
+
+    vendidos_list = df[df["estado"]=="Vendido"]["numero"].tolist()
+    reservados_list = df[df["estado"]=="Pendiente"]["numero"].tolist()
+
+    opciones = []
+    mapa = {}
+
+    for n in todos:
+        if n in vendidos_list:
+            label = f"🔴 {n}"
+        elif n in reservados_list:
+            label = f"🟡 {n}"
+        else:
+            label = f"🟢 {n}"
+        opciones.append(label)
+        mapa[label] = n
+
+    seleccion = st.multiselect("Selecciona números",opciones)
+    numeros = [mapa[s] for s in seleccion if mapa[s] not in vendidos_list]
+
+    total = len(numeros)*PRECIO
+    st.success(f"Total: ${total}")
+
+    if st.button("✅ Reservar"):
+
+        if not nombre or not telefono:
+            st.error("Completa los datos")
+
+        elif len(numeros)!=cantidad:
+            st.error("Selecciona la cantidad correcta")
+
+        else:
+            nuevos = []
+
+            for n in numeros:
+                nuevos.append({
+                    "numero":n,
+                    "nombre":nombre,
+                    "telefono":telefono,
+                    "estado":"Pendiente"
+                })
+
+            df_local = pd.concat([df,pd.DataFrame(nuevos)], ignore_index=True)
+            guardar(df_local)
+
+            st.success("✅ Reserva guardada")
+            st.rerun()
+
+# ========================
+# ADMIN COMPLETO
+# ========================
+with tab2:
+
+    st.subheader("🔒 Panel Administrador")
+
+    clave = st.text_input("Contraseña", type="password")
+
+    if clave == ADMIN_PASSWORD:
+
+        st.success("✅ Acceso concedido")
+
+        st.markdown("### 📋 Todas las reservas")
+        st.dataframe(df)
+
+        st.divider()
+
+        pendientes = df[df["estado"] == "Pendiente"]
+
+        st.markdown("### 🟡 Reservas pendientes")
+
+        for i,row in pendientes.iterrows():
+
+            st.markdown(f"🎟️ **Número: {row['numero']}** | {row['nombre']}")
+
+            col1,col2 = st.columns(2)
+
+            with col1:
+                if st.button(f"✅ Aprobar {row['numero']}", key=f"a{i}"):
+
+                    df.loc[df["numero"]==row["numero"],"estado"]="Vendido"
+                    guardar(df)
+
+                    pdf = generar_pdf(
+                        row["nombre"],
+                        row["telefono"],
+                        [row["numero"]]
+                    )
+
+                    st.success("✅ Venta aprobada")
+
+                    st.download_button(
+                        "📄 Descargar comprobante",
+                        pdf,
+                        file_name=f"boleto_{row['numero']}.pdf"
+                    )
+
+            with col2:
+                if st.button(f"❌ Rechazar {row['numero']}", key=f"r{i}"):
+                    df = df[df["numero"]!=row["numero"]]
+                    guardar(df)
+                    st.rerun()
+
+        st.divider()
+
+        num = st.text_input("Eliminar número")
+
+        if st.button("Eliminar"):
+            df = df[df["numero"]!=num]
+            guardar(df)
+            st.rerun()
+
+        if st.button("⚠️ BORRAR TODO"):
+            df = pd.DataFrame(columns=["numero","nombre","telefono","estado"])
+            guardar(df)
+            st.rerun()
+
+    elif clave:
+        st.error("Contraseña incorrecta")
 
 DB_FILE = "rifa_db.csv"
 PRECIO = 3000
@@ -105,138 +232,3 @@ st.divider()
 tab1, tab2 = st.tabs(["🛒 Reservar","🔒 Admin"])
 
 # ========================
-# RESERVAR
-# ========================
-with tab1:
-
-    cantidad = st.number_input("Cantidad",1,20,1)
-    nombre = st.text_input("Nombre")
-    telefono = st.text_input("Telefono")
-
-    todos = [f"{i:03d}" for i in range(1000)]
-
-    vendidos_list = df[df["estado"]=="Vendido"]["numero"].tolist()
-    reservados_list = df[df["estado"]=="Pendiente"]["numero"].tolist()
-
-    opciones = []
-    mapa = {}
-
-    for n in todos:
-        if n in vendidos_list:
-            label = f"🔴 {n}"
-        elif n in reservados_list:
-            label = f"🟡 {n}"
-        else:
-            label = f"🟢 {n}"
-
-        opciones.append(label)
-        mapa[label] = n
-
-    seleccion = st.multiselect("Selecciona números", opciones)
-    numeros = [mapa[s] for s in seleccion if mapa[s] not in vendidos_list]
-
-    total = len(numeros)*PRECIO
-    st.success(f"Total: ${total}")
-
-    if st.button("✅ Reservar"):
-
-        if not nombre or not telefono:
-            st.error("Completa los datos")
-
-        elif len(numeros)!=cantidad:
-            st.error("Selecciona la cantidad correcta")
-
-        else:
-            nuevos = []
-
-            for n in numeros:
-                nuevos.append({
-                    "numero":n,
-                    "nombre":nombre,
-                    "telefono":telefono,
-                    "estado":"Pendiente"
-                })
-
-            df_local = pd.concat([df,pd.DataFrame(nuevos)], ignore_index=True)
-            guardar(df_local)
-
-            st.success("✅ Reserva guardada")
-            st.rerun()
-
-# ========================
-# ADMIN COMPLETO
-# ========================
-with tab2:
-
-    st.subheader("🔒 Panel Administrador")
-
-    clave = st.text_input("Contraseña", type="password")
-
-    if clave == ADMIN_PASSWORD:
-
-        st.success("✅ Acceso concedido")
-
-        st.markdown("### 📋 Todas las reservas")
-        st.dataframe(df)
-
-        st.divider()
-
-        pendientes = df[df["estado"] == "Pendiente"]
-
-        st.markdown("### 🟡 Reservas pendientes")
-
-        if pendientes.empty:
-            st.info("No hay reservas")
-        else:
-            for i,row in pendientes.iterrows():
-
-                st.markdown(f"🎟️ **Número: {row['numero']}** | {row['nombre']}")
-
-                col1,col2 = st.columns(2)
-
-                # ✅ APROBAR
-                with col1:
-                    if st.button(f"✅ Aprobar {row['numero']}", key=f"a{i}"):
-
-                        df.loc[df["numero"]==row["numero"],"estado"]="Vendido"
-                        guardar(df)
-
-                        pdf = generar_pdf(
-                            row["nombre"],
-                            row["telefono"],
-                            [row["numero"]]
-                        )
-
-                        st.success("✅ Venta aprobada")
-
-                        st.download_button(
-                            "📄 Descargar comprobante",
-                            pdf,
-                            file_name=f"boleto_{row['numero']}.pdf"
-                        )
-
-                # ❌ RECHAZAR
-                with col2:
-                    if st.button(f"❌ Rechazar {row['numero']}", key=f"r{i}"):
-                        df = df[df["numero"]!=row["numero"]]
-                        guardar(df)
-                        st.rerun()
-
-        st.divider()
-
-        # ❌ ELIMINAR
-        num = st.text_input("Eliminar número")
-
-        if st.button("Eliminar"):
-            df = df[df["numero"]!=num]
-            guardar(df)
-            st.rerun()
-
-        # 🧹 RESET
-        if st.button("⚠️ BORRAR TODO"):
-            df = pd.DataFrame(columns=["numero","nombre","telefono","estado"])
-            guardar(df)
-            st.rerun()
-
-    elif clave:
-        st.error("Contraseña incorrecta")
