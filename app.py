@@ -1,49 +1,7 @@
 import streamlit as st
 import pandas as pd
 import os
-from fpdf import FPDF
-from datetime import datetime
-
-st.set df.loc[df["numero"]==row["numero"],"estado"]="Vendido"st.set_page_config(page_title="Rifa Premium", layout="wide")
-                    guardar(df)
-
-                    pdf = generar_pdf(row["nombre"],row["telefono"],[row["numero"]])
-
-                    st.download_button("Descargar PDF", pdf)
-
-            with col2:
-                if st.button(f"Rechazar {row['numero']}", key=f"r{i}"):
-                    df = df[df["numero"]!=row["numero"]]
-                    guardar(df)
-                    st.rerun()
-
-    elif clave:
-        st.error("Contraseña incorrecta")
-
-DB_FILE = "rifa_db.csv"
-PRECIO = 3000
-ADMIN_PASSWORD = "JVR_2026_SEGUR0"
-
-def cargar():
-    if not os.path.exists(DB_FILE):
-        df = pd.DataFrame(columns=["numero","nombre","telefono","estado"])
-        df.to_csv(DB_FILE, index=False)
-    return pd.read_csv(DB_FILE, dtype=str).fillna("")
-
-def guardar(df):
-    df.to_csv(DB_FILE, index=False)
-
-df = cargar()
-
-def generar_pdf(nombre, telefono, numeros):
-    numeros = [str(n) for n in numeros]
-    fecha = datetime.now().strftime("%d/%m/%Y %H:%M")
-
-    pdf = FPDF()
-    pdf.add_page()
-
-    pdf.set_font("Arial","B",16)
-    pdf.cell(0,10,"RIFA PREMIUM",ln=True,align="C")
+align="C")from fpdf import FPDF
 
     pdf.cell(0,10,f"Nombre: {nombre}",ln=True)
     pdf.cell(0,10,f"Telefono: {telefono}",ln=True)
@@ -61,7 +19,6 @@ st.title("🎟️ RIFA PREMIUM")
 tab1, tab2 = st.tabs(["Reservar","Admin"])
 
 with tab1:
-
     cantidad = st.number_input("Cantidad",1,20,1)
     nombre = st.text_input("Nombre")
     telefono = st.text_input("Telefono")
@@ -87,8 +44,7 @@ with tab1:
     seleccion = st.multiselect("Numeros", opciones)
     numeros = [mapa[s] for s in seleccion if mapa[s] not in vendidos]
 
-    total=len(numeros)*PRECIO
-    st.success(f"Total: ${total}")
+    st.success(f"Total: ${len(numeros)*PRECIO}")
 
     if st.button("Reservar"):
         nuevos=[]
@@ -107,7 +63,6 @@ with tab1:
         st.rerun()
 
 with tab2:
-
     clave = st.text_input("Contraseña", type="password")
 
     if clave == ADMIN_PASSWORD:
@@ -122,3 +77,46 @@ with tab2:
 
             with col1:
                 if st.button(f"Aprobar {row['numero']}", key=f"a{i}"):
+
+                    df.loc[df["numero"]==row["numero"],"estado"]="Vendido"
+                    guardar(df)
+
+                    pdf = generar_pdf(row["nombre"],row["telefono"],[row["numero"]])
+
+                    st.download_button("Descargar PDF", pdf)
+
+            with col2:
+                if st.button(f"Rechazar {row['numero']}", key=f"r{i}"):
+                    df = df[df["numero"]!=row["numero"]]
+                    guardar(df)
+                    st.rerun()
+
+    elif clave:
+        st.error("Contraseña incorrecta")
+from datetime import datetime
+
+st.set_page_config(page_title="Rifa Premium", layout="wide")
+
+DB_FILE = "rifa_db.csv"
+PRECIO = 3000
+ADMIN_PASSWORD = "JVR_2026_SEGUR0"
+
+def cargar():
+    if not os.path.exists(DB_FILE):
+        df = pd.DataFrame(columns=["numero","nombre","telefono","estado"])
+        df.to_csv(DB_FILE, index=False)
+    return pd.read_csv(DB_FILE, dtype=str).fillna("")
+
+def guardar(df):
+    df.to_csv(DB_FILE, index=False)
+
+df = cargar()
+
+def generar_pdf(nombre, telefono, numeros):
+    numeros = [str(n) for n in numeros]
+    fecha = datetime.now().strftime("%d/%m/%Y %H:%M")
+
+    pdf = FPDF()
+    pdf.add_page()
+
+    pdf.set_font("Arial","B",16)
