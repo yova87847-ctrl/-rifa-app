@@ -189,4 +189,4 @@ with tab2:
             st.rerun()
 
     elif clave:
-        st.error("Contraseña incorrecta")S
+        st.error("Contraseña incorrecta")
