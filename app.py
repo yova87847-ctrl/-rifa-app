@@ -29,46 +29,58 @@ def guardar(df):
 df = cargar()
 
 # ========================
-# PDF PROFESIONAL
+# PDF TIPO COMPROBANTE
 # ========================
 def generar_pdf(nombre, telefono, numeros):
     pdf = FPDF()
     pdf.add_page()
 
     fecha = datetime.now().strftime("%d/%m/%Y %H:%M")
+    total = PRECIO * len(numeros)
 
-    pdf.set_font("Arial","B",18)
-    pdf.set_text_color(200,0,0)
-    pdf.cell(0,10,"J.V.R PREMIUM RIFA",ln=True,align="C")
-
-    pdf.ln(5)
-
-    pdf.set_text_color(0,0,0)
-    pdf.set_font("Arial","",11)
-
-    pdf.cell(0,8,f"Nombre: {nombre}",ln=True)
-    pdf.cell(0,8,f"Telefono: {telefono}",ln=True)
+    # ENCABEZADO
+    pdf.set_font("Arial","B",16)
+    pdf.cell(0,10,"COMPROBANTE DE COMPRA",ln=True,align="C")
 
     pdf.ln(3)
 
+    pdf.set_font("Arial","",11)
+    pdf.cell(0,7,"Estado: Transaccion exitosa",ln=True)
+    pdf.cell(0,7,"Evento: Rifa Premium J.V.R",ln=True)
+
+    pdf.ln(3)
+
+    # ✅ DATOS DEL COMPRADOR
     pdf.set_font("Arial","B",12)
-    pdf.cell(0,8,"NUMEROS DE BOLETO",ln=True)
+    pdf.cell(0,8,"DATOS DEL COMPRADOR",ln=True)
 
     pdf.set_font("Arial","",11)
-    pdf.cell(0,8," - ".join(numeros),ln=True)
+    pdf.cell(0,7,f"Comprador de turno: {nombre}",ln=True)
+    pdf.cell(0,7,f"Telefono: {telefono}",ln=True)
 
     pdf.ln(3)
 
-    pdf.cell(0,8,f"Fecha: {fecha}",ln=True)
-    pdf.cell(0,8,f"Total pagado: ${PRECIO * len(numeros)}",ln=True)
+    # DETALLE
+    pdf.set_font("Arial","B",12)
+    pdf.cell(0,8,"DETALLE DE LA COMPRA",ln=True)
 
-    pdf.ln(4)
+    pdf.set_font("Arial","",11)
+    pdf.cell(0,7,"Numeros adquiridos:",ln=True)
+    pdf.multi_cell(0,7," - ".join(numeros))
 
+    pdf.ln(2)
+
+    pdf.cell(0,7,f"Fecha y hora: {fecha}",ln=True)
+    pdf.cell(0,7,f"Total pagado: ${total}",ln=True)
+
+    pdf.ln(3)
+
+    # PREMIO
     pdf.multi_cell(0,7,"Premio: Televisor Smart TV 42 pulgadas o $1.300.000")
 
-    pdf.ln(4)
+    pdf.ln(3)
 
-    pdf.cell(0,7,"Responsable: Jovanis Vanegas",ln=True)
+    pdf.cell(0,7,"Organiza: J.V.R Premium",ln=True)
     pdf.cell(0,7,"Contacto: 3126613272",ln=True)
 
     pdf.ln(5)
@@ -155,7 +167,11 @@ with tab1:
 
         pdf_bytes = generar_pdf(datos["nombre"],datos["telefono"],datos["numeros"])
 
-        st.download_button("📄 Descargar comprobante",data=pdf_bytes,file_name="rifa.pdf")
+        st.download_button(
+            "📄 Descargar comprobante",
+            data=pdf_bytes,
+            file_name="rifa_comprobante.pdf"
+        )
 
         mensaje = f"Hola, reservé {', '.join(datos['numeros'])}. Total ${len(datos['numeros'])*PRECIO}"
         link = f"https://wa.me/{datos['telefono']}?text={mensaje.replace(' ','%20')}"
@@ -184,14 +200,12 @@ with tab2:
 
                 col1, col2 = st.columns(2)
 
-                # ✅ APROBAR
                 with col1:
                     if st.button(f"✅ Aprobar {row['numero']}", key=f"a{i}"):
                         df.loc[df["numero"]==row["numero"],"estado"]="Vendido"
                         guardar(df)
                         st.rerun()
 
-                # ✅ RECHAZAR
                 with col2:
                     if st.button(f"❌ Rechazar {row['numero']}", key=f"r{i}"):
                         df = df[df["numero"]!=row["numero"]]
@@ -201,7 +215,7 @@ with tab2:
         st.write("### 📋 Datos")
         st.dataframe(df)
 
-        # ❌ ELIMINAR MANUAL
+        # ELIMINAR
         st.write("### ❌ Eliminar número")
         num = st.text_input("Número")
 
@@ -210,7 +224,7 @@ with tab2:
             guardar(df)
             st.rerun()
 
-        # 🧹 RESET TOTAL
+        # RESET
         st.write("### 🧹 Reiniciar rifa")
         if st.button("⚠️ BORRAR TODO"):
             df = pd.DataFrame(columns=["numero","nombre","telefono","estado"])
@@ -219,4 +233,3 @@ with tab2:
 
     elif clave:
         st.error("Contraseña incorrecta ❌")
-
