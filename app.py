@@ -1,83 +1,124 @@
 import streamlit as st
-import os
 import pandas as pd
-from fpdf import F pdf.set_font("Arial","B",11)from fpdf import FPDF
-    pdf.cell(0,7,"Premio principal:",ln=True)
+import os
+from fpdf import FPDF
+ numeros = [str(n) for n in numeros]from datetime import datetime
+    fecha = datetime.now().strftime("%d/%m/%Y %H:%M")
 
-    pdf.set_font("Arial","",11)
-    pdf.multi_cell(0,6,"Televisor Smart TV 42 pulgadas")
-    pdf.cell(0,6,"Opcion alternativa: $1.300.000",ln=True)
-    pdf.cell(0,6,"Sorteo: Loteria de Medellin",ln=True)
+    pdf = FPDF()
+    pdf.add_page()
+
+    pdf.set_font("Arial", "B", 16)
+    pdf.cell(0, 10, "J.V.R PREMIUM RIFA", ln=True, align="C")
+
+    pdf.ln(5)
+
+    pdf.set_font("Arial", "", 12)
+    pdf.cell(0, 8, f"Nombre: {nombre}", ln=True)
+    pdf.cell(0, 8, f"Telefono: {telefono}", ln=True)
+
+    pdf.ln(3)
+
+    pdf.set_font("Arial", "B", 12)
+    pdf.cell(0, 8, "NUMERO DE BOLETO:", ln=True)
+
+    pdf.set_font("Arial", "B", 14)
+    pdf.cell(0, 10, " - ".join(numeros), ln=True)
+
+    pdf.ln(2)
+
+    pdf.set_font("Arial", "", 11)
+    pdf.cell(0, 7, f"Fecha: {fecha}", ln=True)
+    pdf.cell(0, 7, f"Total pagado: ${PRECIO * len(numeros)}", ln=True)
 
     pdf.ln(4)
 
-    pdf.set_font("Arial","B",11)
-    pdf.cell(0,7,"Responsable: Jovanis Vanegas",ln=True)
+    pdf.set_font("Arial", "B", 11)
+    pdf.cell(0, 7, "Premio principal:", ln=True)
 
-    pdf.set_font("Arial","",11)
-    pdf.cell(0,7,"Contacto: 3126613272",ln=True)
+    pdf.set_font("Arial", "", 11)
+    pdf.multi_cell(0, 6, "Televisor Smart TV 42 pulgadas Android Full HD")
+    pdf.cell(0, 6, "Opcion alternativa: $1.300.000 en efectivo", ln=True)
+    pdf.cell(0, 6, "Sorteo: Loteria de Medellin", ln=True)
+
+    pdf.ln(4)
+
+    pdf.set_font("Arial", "B", 11)
+    pdf.cell(0, 7, "Responsable: Jovanis Vanegas Ropain", ln=True)
+
+    pdf.set_font("Arial", "", 11)
+    pdf.cell(0, 7, "Contacto: 3126613272", ln=True)
 
     pdf.ln(5)
-    pdf.cell(0,8,"Gracias por tu compra!",ln=True,align="C")
+    pdf.cell(0, 8, "Gracias por tu compra, mucha suerte!", ln=True, align="C")
 
     return pdf.output(dest="S").encode("latin-1")
 
 # ========================
-# UI
+# INTERFAZ
 # ========================
 st.title("🎟️ RIFA PREMIUM")
 
-tab1, tab2 = st.tabs(["🛒 Reservar","🔒 Admin"])
+tab1, tab2 = st.tabs(["🛒 Reservar", "🔒 Admin"])
 
 # ========================
 # RESERVAR
 # ========================
 with tab1:
 
-    cantidad = st.number_input("Cantidad",1,20,1)
+    cantidad = st.number_input("Cantidad", 1, 20, 1)
     nombre = st.text_input("Nombre")
     telefono = st.text_input("Telefono")
 
     todos = [f"{i:03d}" for i in range(1000)]
 
-    vendidos = df[df["estado"]=="Vendido"]["numero"].tolist()
-    reservados = df[df["estado"]=="Pendiente"]["numero"].tolist()
+    vendidos = df[df["estado"] == "Vendido"]["numero"].tolist()
+    reservados = df[df["estado"] == "Pendiente"]["numero"].tolist()
 
-    opciones=[]
-    mapa={}
+    opciones = []
+    mapa = {}
 
     for n in todos:
         if n in vendidos:
-            label=f"🔴 {n}"
+            label = f"🔴 {n}"
         elif n in reservados:
-            label=f"🟡 {n}"
+            label = f"🟡 {n}"
         else:
-            label=f"🟢 {n}"
+            label = f"🟢 {n}"
 
         opciones.append(label)
-        mapa[label]=n
+        mapa[label] = n
 
     seleccion = st.multiselect("Numeros", opciones)
     numeros = [mapa[s] for s in seleccion if mapa[s] not in vendidos]
 
-    total=len(numeros)*PRECIO
+    total = len(numeros) * PRECIO
     st.success(f"Total: ${total}")
 
     if st.button("Reservar"):
-        nuevos=[]
-        for n in numeros:
-            nuevos.append({
-                "numero":n,
-                "nombre":nombre,
-                "telefono":telefono,
-                "estado":"Pendiente"
-            })
 
-        df_local=pd.concat([df,pd.DataFrame(nuevos)],ignore_index=True)
-        guardar(df_local)
+        if not nombre or not telefono:
+            st.error("Completa los datos")
 
-        st.success("Reserva guardada ✅")
-        st.rerun()
+        elif len(numeros) != cantidad:
+            st.error("Cantidad incorrecta")
+
+        else:
+            nuevos = []
+
+            for n in numeros:
+                nuevos.append({
+                    "numero": n,
+                    "nombre": nombre,
+                    "telefono": telefono,
+                    "estado": "Pendiente"
+                })
+
+            df_local = pd.concat([df, pd.DataFrame(nuevos)], ignore_index=True)
+            guardar(df_local)
+
+            st.success("Reserva guardada ✅")
+            st.rerun()
 
 # ========================
 # ADMIN
@@ -90,28 +131,40 @@ with tab2:
 
         st.dataframe(df)
 
-        pendientes = df[df["estado"]=="Pendiente"]
+        pendientes = df[df["estado"] == "Pendiente"]
 
-        for i,row in pendientes.iterrows():
+        for i, row in pendientes.iterrows():
 
-            col1,col2 = st.columns(2)
+            col1, col2 = st.columns(2)
 
+            # ✅ APROBAR
             with col1:
                 if st.button(f"Aprobar {row['numero']}", key=f"a{i}"):
 
-                    df.loc[df["numero"]==row["numero"],"estado"]="Vendido"
+                    df.loc[df["numero"] == row["numero"], "estado"] = "Vendido"
                     guardar(df)
 
-                    pdf = generar_pdf(row["nombre"],row["telefono"],[row["numero"]])
+                    pdf = generar_pdf(
+                        row["nombre"],
+                        row["telefono"],
+                        [row["numero"]]
+                    )
 
-                    st.download_button("Descargar PDF", pdf, file_name="boleto.pdf")
+                    st.download_button(
+                        "Descargar PDF",
+                        pdf,
+                        file_name="boleto.pdf"
+                    )
 
+            # ❌ RECHAZAR
             with col2:
                 if st.button(f"Rechazar {row['numero']}", key=f"r{i}"):
-                    df = df[df["numero"]!=row["numero"]]
+                    df = df[df["numero"] != row["numero"]]
                     guardar(df)
                     st.rerun()
-from datetime import datetime
+
+    elif clave:
+        st.error("Contraseña incorrecta")
 
 # ========================
 # CONFIG
@@ -127,7 +180,7 @@ ADMIN_PASSWORD = "JVR_2026_SEGUR0"
 # ========================
 def cargar():
     if not os.path.exists(DB_FILE):
-        df = pd.DataFrame(columns=["numero","nombre","telefono","estado"])
+        df = pd.DataFrame(columns=["numero", "nombre", "telefono", "estado"])
         df.to_csv(DB_FILE, index=False)
     return pd.read_csv(DB_FILE, dtype=str).fillna("")
 
@@ -140,34 +193,4 @@ df = cargar()
 # PDF
 # ========================
 def generar_pdf(nombre, telefono, numeros):
-    numeros = [str(n) for n in numeros]
-    fecha = datetime.now().strftime("%d/%m/%Y %H:%M")
-
-    pdf = FPDF()
-    pdf.add_page()
-
-    pdf.set_font("Arial","B",16)
-    pdf.cell(0,10,"J.V.R PREMIUM RIFA",ln=True,align="C")
-
-    pdf.ln(5)
-
-    pdf.set_font("Arial","",12)
-    pdf.cell(0,8,f"Nombre: {nombre}",ln=True)
-    pdf.cell(0,8,f"Telefono: {telefono}",ln=True)
-
-    pdf.ln(3)
-
-    pdf.set_font("Arial","B",12)
-    pdf.cell(0,8,"NUMERO DE BOLETO:",ln=True)
-
-    pdf.set_font("Arial","B",14)
-    pdf.cell(0,10," - ".join(numeros),ln=True)
-
-    pdf.ln(2)
-
-    pdf.set_font("Arial","",11)
-    pdf.cell(0,7,f"Fecha: {fecha}",ln=True)
-    pdf.cell(0,7,f"Total pagado: ${PRECIO * len(numeros)}",ln=True)
-
-    pdf.ln(4)
 
