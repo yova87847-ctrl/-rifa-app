@@ -28,7 +28,7 @@ def guardar(df):
 df = cargar()
 
 # ========================
-# PDF TIPO TICKET 🔥
+# PDF 🎟️
 # ========================
 def generar_pdf(nombre, telefono, numeros):
     pdf = FPDF()
@@ -45,40 +45,21 @@ def generar_pdf(nombre, telefono, numeros):
     pdf.cell(0,8,f"Nombre: {nombre}",ln=True)
     pdf.cell(0,8,f"Telefono: {telefono}",ln=True)
 
-    pdf.ln(3)
+    pdf.ln(5)
 
-    pdf.set_font("Arial","B",12)
-    pdf.cell(0,8,"NUMEROS DE BOLETO:",ln=True)
+    pdf.set_font("Arial","B",28)
+    pdf.cell(0,20," - ".join(numeros),ln=True,align="C")
 
     pdf.set_font("Arial","",12)
-    pdf.cell(0,8," - ".join(numeros),ln=True)
-
-    pdf.ln(3)
     pdf.cell(0,8,f"Fecha: {fecha}",ln=True)
-
-    pdf.cell(0,8,f"Total pagado: ${PRECIO * len(numeros)}",ln=True)
-
-    pdf.ln(4)
-
-    pdf.set_font("Arial","B",11)
-    pdf.cell(0,8,"Premio principal:",ln=True)
-
-    pdf.set_font("Arial","",11)
-    pdf.multi_cell(0,6,"Televisor Smart TV Sankey 42 pulgadas Android Full HD")
-
-    pdf.cell(0,6,"Opcion alternativa: $1.300.000 en efectivo",ln=True)
-    pdf.cell(0,6,"Sorteo: 4 de septiembre - Loteria de Medellin",ln=True)
+    pdf.cell(0,8,f"Total: ${PRECIO * len(numeros)}",ln=True)
 
     pdf.ln(5)
+    pdf.multi_cell(0,6,"Premio: Televisor Smart TV 42 pulgadas o $1.300.000")
 
-    pdf.set_font("Arial","B",11)
-    pdf.cell(0,6,"Responsable: Jovanis Vanegas Ropain",ln=True)
+    pdf.ln(5)
+    pdf.cell(0,6,"Responsable: Jovanis Vanegas",ln=True)
     pdf.cell(0,6,"Contacto: 3126613272",ln=True)
-
-    pdf.ln(5)
-
-    pdf.set_font("Arial","B",12)
-    pdf.cell(0,10,"Gracias por tu compra, mucha suerte!",ln=True,align="C")
 
     return pdf.output(dest="S").encode("latin-1")
 
@@ -112,7 +93,6 @@ with tab1:
     nombre = st.text_input("Nombre")
     telefono = st.text_input("Telefono")
 
-    # ✅ 000 → 999
     todos = [f"{i:03d}" for i in range(1000)]
 
     vendidos_list = df[df["estado"]=="Vendido"]["numero"].tolist()
@@ -123,9 +103,9 @@ with tab1:
 
     for n in todos:
         if n in vendidos_list:
-            label=f"🔴 {n} Vendido"
+            label=f"🔴 {n}"
         elif n in reservados_list:
-            label=f"🟡 {n} Reservado"
+            label=f"🟡 {n}"
         else:
             label=f"🟢 {n}"
 
@@ -133,23 +113,29 @@ with tab1:
         mapa[label]=n
 
     seleccion = st.multiselect("Selecciona números", opciones)
-
     numeros = [mapa[s] for s in seleccion if mapa[s] not in vendidos_list]
 
     total = len(numeros)*PRECIO
     st.success(f"💰 Total: ${total}")
 
+    # 🔥 TABLERO VISUAL
+    st.markdown("### 🎟️ Tablero")
+    cols = st.columns(10)
+    for i,n in enumerate(todos[:100]):
+        color="🟢"
+        if n in vendidos_list:
+            color="🔴"
+        elif n in reservados_list:
+            color="🟡"
+        cols[i%10].write(f"{color} {n}")
+
     if st.button("✅ Reservar"):
-
         if not nombre or not telefono:
-            st.error("Completa los datos")
-
+            st.error("Completa datos")
         elif len(numeros)!=cantidad:
-            st.error("Selecciona la cantidad correcta")
-
+            st.error("Cantidad incorrecta")
         else:
             nuevos=[]
-
             for n in numeros:
                 nuevos.append({
                     "numero":n,
@@ -160,7 +146,6 @@ with tab1:
 
             df_local=pd.concat([df,pd.DataFrame(nuevos)],ignore_index=True)
             guardar(df_local)
-
             st.success("✅ Reserva guardada")
             st.rerun()
 
@@ -169,18 +154,14 @@ with tab1:
 # ========================
 with tab2:
 
-    st.subheader("🔒 Panel Administrador")
-    clave = st.text_input("Contraseña", type="password")
+    clave = st.text_input("Contraseña",type="password")
 
     if clave == ADMIN_PASSWORD:
 
-        st.success("✅ Acceso concedido")
-
+        st.success("✅ Admin activo")
         st.dataframe(df)
 
         pendientes = df[df["estado"]=="Pendiente"]
-
-        st.write("### 🟡 Pendientes")
 
         for i,row in pendientes.iterrows():
 
@@ -188,38 +169,39 @@ with tab2:
 
             col1,col2 = st.columns(2)
 
-            # ✅ APROBAR + PDF
+            # ✅ APROBAR
             with col1:
-                if st.button(f"✅ Aprobar {row['numero']}", key=f"a{i}"):
+                if st.button(f"✅ Aprobar {row['numero']}",key=f"a{i}"):
 
-                    df.loc[df["numero"] == row["numero"], "estado"] = "Vendido"
+                    df.loc[df["numero"]==row["numero"],"estado"]="Vendido"
                     guardar(df)
 
-                    pdf_bytes = generar_pdf(
+                    pdf = generar_pdf(
                         row["nombre"],
                         row["telefono"],
                         [row["numero"]]
                     )
 
-                    st.success("✅ Venta aprobada")
-
                     st.download_button(
-                        label="📄 Descargar comprobante",
-                        data=pdf_bytes,
-                        file_name=f"boleto_{row['numero']}.pdf",
-                        mime="application/pdf"
+                        "📄 Descargar comprobante",
+                        pdf,
+                        file_name=f"boleto_{row['numero']}.pdf"
                     )
+
+                    # ✅ WHATSAPP
+                    mensaje = f"Hola {row['nombre']}, tu compra fue aprobada ✅ Número: {row['numero']}"
+                    url = f"https://wa.me/{row['telefono']}?text={mensaje.replace(' ','%20')}"
+                    st.markdown(f"[📲 Enviar por WhatsApp]({url})")
 
             # ❌ RECHAZAR
             with col2:
-                if st.button(f"❌ Rechazar {row['numero']}", key=f"r{i}"):
-                    df = df[df["numero"] != row["numero"]]
+                if st.button(f"❌ Rechazar {row['numero']}",key=f"r{i}"):
+                    df = df[df["numero"]!=row["numero"]]
                     guardar(df)
                     st.rerun()
 
         st.divider()
 
-        # ❌ ELIMINAR MANUAL
         num = st.text_input("Eliminar número")
 
         if st.button("Eliminar"):
@@ -227,11 +209,10 @@ with tab2:
             guardar(df)
             st.rerun()
 
-        # 🧹 RESET
         if st.button("⚠️ BORRAR TODO"):
             df = pd.DataFrame(columns=["numero","nombre","telefono","estado"])
             guardar(df)
             st.rerun()
 
     elif clave:
-        st.error("Contraseña incorrecta ❌")
+        st.error("Contraseña incorrecta")
